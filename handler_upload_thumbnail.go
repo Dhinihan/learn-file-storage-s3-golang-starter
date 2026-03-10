@@ -1,10 +1,12 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
@@ -43,11 +45,6 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	cType := fHeader.Header.Get("Content-Type")
-	fileData, err := io.ReadAll(file)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Error processing request", err)
-		return
-	}
 	vidMeta, err := cfg.db.GetVideo(videoID)
 	if err != nil {
 		respondWithError(
@@ -62,9 +59,24 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
-	fileDataB64 := base64.StdEncoding.EncodeToString(fileData)
-	fileDataURL := fmt.Sprintf("data:%s;base64,%s", cType, fileDataB64)
-	vidMeta.ThumbnailURL = &fileDataURL
+	ext, err := mime.ExtensionsByType(cType)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Error processing request", err)
+		return
+	}
+	filename := videoIDString + ext[0]
+	path := filepath.Join(cfg.assetsRoot, filename)
+	wFile, err := os.Create(path)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating file", err)
+		return
+	}
+	if _, err := io.Copy(wFile, file); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating file", err)
+		return
+	}
+	fileURL := fmt.Sprintf("http://localhost:%s/assets/%s", cfg.port, filename)
+	vidMeta.ThumbnailURL = &fileURL
 	if err := cfg.db.UpdateVideo(vidMeta); err != nil {
 		respondWithError(
 			w,
