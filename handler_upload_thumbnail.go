@@ -59,6 +59,11 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
+	tp, _, err := mime.ParseMediaType(cType)
+	if err != nil || (tp != "image/png" && tp != "image/jpeg") {
+		respondWithError(w, http.StatusBadRequest, "The file type is invalid", err)
+		return
+	}
 	ext, err := mime.ExtensionsByType(cType)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Error processing request", err)
