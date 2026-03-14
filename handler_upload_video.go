@@ -76,10 +76,23 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Failed saving video", err)
 		return
 	}
+
+	prcVideoPath, err := processVideoForFastStart(tmpVideo.Name())
+	if err != nil {
+		respondWithError(w, 500, "Error processing the video", err)
+		return
+	}
+	defer os.Remove(prcVideoPath)
+	prcVideo, err := os.Open(prcVideoPath)
+	if err != nil {
+		respondWithError(w, 500, "Error processing the video", err)
+		return
+	}
+	defer prcVideo.Close()
+
 	rnd := make([]byte, 32)
 	rand.Read(rnd)
-
-	ratio, err := getVideoAspectRatio(tmpVideo.Name())
+	ratio, err := getVideoAspectRatio(prcVideoPath)
 	if err != nil {
 		respondWithError(w, 500, "Error deciding the aspect ratio", err)
 		return
@@ -96,7 +109,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	if _, err := cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
 		Key:         &filehash,
-		Body:        tmpVideo,
+		Body:        prcVideo,
 		ContentType: &mType,
 	}); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed saving video", err)
@@ -142,4 +155,26 @@ func getVideoAspectRatio(filePath string) (string, error) {
 		return "9:16", nil
 	}
 	return "other", nil
+}
+
+func processVideoForFastStart(filePath string) (string, error) {
+	output := filePath + ".processing"
+	cmd := exec.Command(
+		"ffmpeg",
+		"-i",
+		filePath,
+		"-c",
+		"copy",
+		"-movflags",
+		"faststart",
+		"-f",
+		"mp4",
+		output,
+	)
+	buff := bytes.NewBuffer([]byte{})
+	cmd.Stdout = buff
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return output, nil
 }
