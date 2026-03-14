@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
 	"os"
+	"os/exec"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
@@ -74,7 +78,20 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 	rnd := make([]byte, 32)
 	rand.Read(rnd)
-	filehash := base64.RawURLEncoding.EncodeToString(rnd) + ".mp4"
+
+	ratio, err := getVideoAspectRatio(tmpVideo.Name())
+	if err != nil {
+		respondWithError(w, 500, "Error deciding the aspect ratio", err)
+		return
+	}
+	folder := "other/"
+	if ratio == "16:9" {
+		folder = "landscape/"
+	}
+	if ratio == "9:16" {
+		folder = "portrait/"
+	}
+	filehash := folder + base64.RawURLEncoding.EncodeToString(rnd) + ".mp4"
 
 	if _, err := cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
@@ -91,5 +108,38 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Failed saving video", err)
 		return
 	}
+}
 
+func getVideoAspectRatio(filePath string) (string, error) {
+	cmd := exec.Command("ffprobe", "-v", "error", "-print_format", "json", "-show_streams", filePath)
+	buff := bytes.NewBuffer([]byte{})
+	cmd.Stdout = buff
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	var streamsData struct {
+		Streams []struct {
+			Width  int `json:"width"`
+			Height int `json:"height"`
+		} `json:"streams"`
+	}
+	rawData, err := io.ReadAll(buff)
+	if err != nil {
+		return "", err
+	}
+	if err := json.Unmarshal(rawData, &streamsData); err != nil {
+		return "", err
+	}
+	if len(streamsData.Streams) < 1 {
+		return "", errors.New("No stream received")
+	}
+	stream := streamsData.Streams[0]
+	ratio := (stream.Width * 1000) / stream.Height
+	switch ratio {
+	case 1777:
+		return "16:9", nil
+	case 562:
+		return "9:16", nil
+	}
+	return "other", nil
 }

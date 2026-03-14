@@ -4,21 +4,23 @@ go 1.24
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
-	golang.org/x/crypto v0.14.0
+	golang.org/x/crypto v0.14.0 // indirect
 )
 
 require (
+	github.com/alexedwards/argon2id v1.0.0
+	github.com/aws/aws-sdk-go-v2/config v1.32.11
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.24
+	go.uber.org/zap v1.27.1
 )
 
 require (
-	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.32.11 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.11 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.19 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.19 // indirect
@@ -29,7 +31,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.19 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.16 // indirect
