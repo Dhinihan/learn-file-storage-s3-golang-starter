@@ -97,5 +97,6 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, vidMeta)
+	psVideo, _ := cfg.dbVideoToSignedVideo(vidMeta)
+	respondWithJSON(w, http.StatusOK, psVideo)
 }

@@ -115,7 +115,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Failed saving video", err)
 		return
 	}
-	videoURL := "https://tubely-83183.s3.sa-east-1.amazonaws.com/" + filehash
+	videoURL := cfg.s3Bucket + "," + filehash
 	vidMeta.VideoURL = &videoURL
 	if err := cfg.db.UpdateVideo(vidMeta); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed saving video", err)
